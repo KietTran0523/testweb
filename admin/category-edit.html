@@ -1,0 +1,51 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Sửa danh mục - Admin TIKITAKA</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+    <link rel="stylesheet" href="../css/style.css">
+</head>
+<body>
+<nav class="navbar navbar-expand-lg navbar-tiki">
+    <div class="container">
+        <a class="navbar-brand" href="../index.html">TIKITAKA Admin</a>
+        <div class="ms-auto">
+            <a href="../index.html" class="nav-link text-white d-inline-block me-3"><i class="fas fa-home"></i> Về trang chủ</a>
+        </div>
+    </div>
+</nav>
+
+<div class="container my-5">
+    <div class="row justify-content-center">
+        <div class="col-md-8">
+            <div class="card shadow-sm border-0">
+                <div class="card-header bg-white fw-bold py-3"><i class="fas fa-edit text-warning"></i> Cập nhật danh mục</div>
+                <div class="card-body p-4">
+                    <form onsubmit="alert('Demo: Danh mục đã được cập nhật!'); window.location.href='categories.html'; return false;">
+                        <div class="mb-3">
+                            <label class="form-label fw-bold">Tên danh mục</label>
+                            <input type="text" class="form-control" value="Thời trang" required>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label fw-bold">Mô tả</label>
+                            <textarea class="form-control" rows="3">Quần áo, phụ kiện thời trang</textarea>
+                        </div>
+                        <div class="d-flex justify-content-between">
+                            <button type="submit" class="btn btn-primary px-4"><i class="fas fa-save"></i> Cập nhật</button>
+                            <a href="categories.html" class="btn btn-outline-secondary">Quay lại</a>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+<footer class="footer mt-5">
+    <div class="container text-center text-muted">© 2025 TIKITAKA Admin - Demo tĩnh</div>
+</footer>
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/js/bootstrap.bundle.min.js"></script>
+</body>
+</html>
