@@ -1,0 +1,322 @@
+// ----------------------------- INITIAL DATA -----------------------------
+const defaultCategories = [
+    { id: 1, name: "Điện thoại", description: "Các dòng điện thoại thông minh" },
+    { id: 2, name: "Loa & Âm thanh", description: "Loa bluetooth, loa kéo" },
+    { id: 3, name: "Laptop", description: "Laptop gaming, văn phòng" },
+    { id: 4, name: "Xe cộ", description: "Xe bán tải, ô tô" }
+];
+const defaultProducts = [
+    { id: 1, name: "iPhone 17 Pro Max", description: "Màn hình Super Retina XDR, chip A19 Pro, camera 48MP, pin trâu.", price: 28990000, category_id: 1, image: "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 200 200'%3E%3Crect width='200' height='200' fill='%23f0f0f0'/%3E%3Ctext x='50%25' y='50%25' dominant-baseline='middle' text-anchor='middle' fill='%23999' font-size='16'%3EiPhone%3C/text%3E%3C/svg%3E" },
+    { id: 2, name: "JBL PartyBox Ultimate", description: "Công suất 1100W, kết nối Bluetooth/WiFi, đèn led RGB, app JBL One.", price: 15990000, category_id: 2, image: "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 200 200'%3E%3Crect width='200' height='200' fill='%23e0e0e0'/%3E%3Ctext x='50%25' y='50%25' dominant-baseline='middle' text-anchor='middle' fill='%23999' font-size='16'%3EJBL%3C/text%3E%3C/svg%3E" },
+    { id: 3, name: "Predator Helios 18 AI", description: "Intel Core Ultra, RTX 4090, RAM 32GB, màn hình 18 inch 240Hz.", price: 65990000, category_id: 3, image: "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 200 200'%3E%3Crect width='200' height='200' fill='%23d4d4d4'/%3E%3Ctext x='50%25' y='50%25' dominant-baseline='middle' text-anchor='middle' fill='%23999' font-size='16'%3EPredator%3C/text%3E%3C/svg%3E" },
+    { id: 4, name: "Toyota Hilux", description: "Xe bán tải mạnh mẽ, động cơ diesel 2.8L, off-road tốt.", price: 859000000, category_id: 4, image: "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 200 200'%3E%3Crect width='200' height='200' fill='%23c0c0c0'/%3E%3Ctext x='50%25' y='50%25' dominant-baseline='middle' text-anchor='middle' fill='%23999' font-size='16'%3EHilux%3C/text%3E%3C/svg%3E" }
+];
+
+function initStorage() {
+    if (!localStorage.getItem('categories')) localStorage.setItem('categories', JSON.stringify(defaultCategories));
+    if (!localStorage.getItem('products')) localStorage.setItem('products', JSON.stringify(defaultProducts));
+    if (!localStorage.getItem('cart')) localStorage.setItem('cart', JSON.stringify([]));
+    if (!localStorage.getItem('orders')) localStorage.setItem('orders', JSON.stringify([]));
+}
+function getCategories() { return JSON.parse(localStorage.getItem('categories')); }
+function saveCategories(cats) { localStorage.setItem('categories', JSON.stringify(cats)); }
+function getProducts() { return JSON.parse(localStorage.getItem('products')); }
+function saveProducts(prods) { localStorage.setItem('products', JSON.stringify(prods)); }
+function getCart() { return JSON.parse(localStorage.getItem('cart')); }
+function saveCart(cart) { localStorage.setItem('cart', JSON.stringify(cart)); updateCartBadge(); }
+function getOrders() { return JSON.parse(localStorage.getItem('orders')); }
+function saveOrders(orders) { localStorage.setItem('orders', JSON.stringify(orders)); }
+function updateCartBadge() { let cart = getCart(); let total = cart.reduce((sum, i) => sum + i.quantity, 0); document.getElementById('cartCountBadge').innerText = total; }
+
+function getCategoryName(catId) { let cat = getCategories().find(c => c.id == catId); return cat ? cat.name : 'Khác'; }
+
+let currentPage = 'product-list';
+let pendingData = null;
+
+function render() {
+    const container = document.getElementById('pageContent');
+    if (currentPage === 'product-list') renderProductList(container);
+    else if (currentPage === 'product-detail') renderProductDetail(container, pendingData);
+    else if (currentPage === 'product-add') renderProductAdd(container);
+    else if (currentPage === 'product-edit') renderProductEdit(container, pendingData);
+    else if (currentPage === 'category-list') renderCategoryList(container);
+    else if (currentPage === 'category-add') renderCategoryAdd(container);
+    else if (currentPage === 'category-edit') renderCategoryEdit(container, pendingData);
+    else if (currentPage === 'cart') renderCart(container);
+    else if (currentPage === 'checkout') renderCheckout(container);
+    else if (currentPage === 'confirm-checkout') renderConfirmCheckout(container, pendingData);
+    else if (currentPage === 'order-confirmation') renderOrderConfirmation(container);
+    else if (currentPage === 'order-history') renderOrderHistory(container);
+    else renderProductList(container);
+}
+
+function renderProductList(container) {
+    let products = getProducts();
+    let categories = getCategories();
+    let html = `
+        <div class="d-flex justify-content-between align-items-end mb-4 border-bottom pb-3">
+            <div><h2 class="font-weight-bold text-primary">Khám phá sản phẩm</h2><p class="text-muted">Lựa chọn những sản phẩm tốt nhất cho bạn</p></div>
+            <a href="#" data-nav="product-add" class="btn btn-success btn-lg shadow-sm rounded-pill px-4 font-weight-bold"><i class="fas fa-plus mr-2"></i>Thêm sản phẩm</a>
+        </div>
+        <div class="row">`;
+    products.forEach(p => {
+        let catName = categories.find(c => c.id == p.category_id)?.name || 'Chưa phân loại';
+        html += `
+        <div class="col-lg-3 col-md-4 col-sm-6 mb-4">
+            <div class="card h-100 shadow-sm product-card bg-white">
+                <a href="#" data-nav="product-detail" data-id="${p.id}" class="text-decoration-none">
+                    <div class="image-container"><img src="${p.image}" class="product-image" alt="${p.name}" onerror="this.src='https://placehold.co/200x200?text=No+Image'"></div>
+                </a>
+                <div class="card-body d-flex flex-column p-3">
+                    <div class="mb-2"><span class="category-badge"><i class="fas fa-tag mr-1"></i>${escapeHtml(catName)}</span></div>
+                    <h5 class="product-title mt-2"><a href="#" data-nav="product-detail" data-id="${p.id}" class="text-dark text-decoration-none">${escapeHtml(p.name)}</a></h5>
+                    <div class="mt-auto"><p class="price-text mb-3">${formatCurrency(p.price)} <small class="text-muted">VND</small></p>
+                    <div class="d-flex border-top pt-3">
+                        <a href="#" data-nav="product-edit" data-id="${p.id}" class="btn btn-sm btn-outline-warning flex-grow-1 mr-2 font-weight-bold shadow-sm"><i class="fas fa-edit mr-1"></i>Sửa</a>
+                        <a href="#" data-action="delete-product" data-id="${p.id}" class="btn btn-sm btn-outline-danger flex-grow-1 font-weight-bold shadow-sm"><i class="fas fa-trash-alt mr-1"></i>Xóa</a>
+                    </div></div>
+                </div>
+            </div>
+        </div>`;
+    });
+    if(products.length===0) html += `<div class="col-12 text-center py-5"><h4 class="text-muted">Chưa có sản phẩm nào. Hãy thêm sản phẩm đầu tiên!</h4></div>`;
+    html += `</div>`;
+    container.innerHTML = html;
+    attachGlobalEvents();
+}
+
+function renderProductDetail(container, productId) {
+    let product = getProducts().find(p => p.id == productId);
+    if (!product) { container.innerHTML = `<div class="alert alert-danger">Không tìm thấy sản phẩm.</div>`; return; }
+    let catName = getCategoryName(product.category_id);
+    container.innerHTML = `
+        <div class="card shadow-lg border-0 rounded-lg overflow-hidden">
+            <div class="card-header bg-dark text-white text-center py-3"><h3 class="mb-0 font-weight-bold">Chi tiết sản phẩm</h3></div>
+            <div class="card-body p-5 bg-white">
+                <div class="row">
+                    <div class="col-md-5 mb-4 text-center"><div class="p-3 border rounded shadow-sm bg-light h-100 d-flex align-items-center justify-content-center"><img src="${product.image}" style="max-height: 400px; object-fit: contain;" onerror="this.src='https://placehold.co/400x300'" alt="${product.name}"></div></div>
+                    <div class="col-md-7"><p><span class="badge badge-info px-3 py-2">${escapeHtml(catName)}</span></p>
+                    <h2>${escapeHtml(product.name)}</h2>
+                    <div class="bg-light p-3 rounded mb-4 border-left-danger"><h3 class="text-danger font-weight-bold">${formatCurrency(product.price)} <small class="text-muted">VND</small></h3></div>
+                    <h5>Mô tả:</h5><div class="text-justify mb-4">${escapeHtml(product.description).replace(/\n/g,'<br>')}</div>
+                    <div class="mt-auto border-top pt-3"><a href="#" data-action="add-to-cart" data-id="${product.id}" class="btn btn-success btn-lg px-4 shadow-sm font-weight-bold mr-3"><i class="fas fa-cart-plus mr-2"></i>Thêm vào giỏ</a>
+                    <a href="#" data-nav="product-list" class="btn btn-secondary btn-lg px-4 shadow-sm"><i class="fas fa-arrow-left mr-2"></i>Quay lại</a></div></div>
+                </div>
+            </div>
+        </div>`;
+    attachGlobalEvents();
+}
+
+function renderProductAdd(container) {
+    let categories = getCategories();
+    let catOptions = categories.map(c => `<option value="${c.id}">${escapeHtml(c.name)}</option>`).join('');
+    container.innerHTML = `
+        <div class="card shadow-lg border-0 rounded-lg"><div class="card-header bg-primary text-white text-center py-3"><h3 class="mb-0">Thêm sản phẩm mới</h3></div>
+        <div class="card-body p-4 bg-light"><form id="productForm" enctype="multipart/form-data">
+            <div class="form-group"><label>Tên sản phẩm</label><input type="text" id="prodName" class="form-control" required></div>
+            <div class="form-group"><label>Mô tả</label><textarea id="prodDesc" class="form-control" rows="3" required></textarea></div>
+            <div class="row"><div class="col-md-6"><label>Giá (VND)</label><input type="number" id="prodPrice" class="form-control" step="1000" required></div>
+            <div class="col-md-6"><label>Danh mục</label><select id="prodCategory" class="form-control">${catOptions}</select></div></div>
+            <div class="form-group"><label>Hình ảnh</label><input type="file" id="prodImage" accept="image/*" class="form-control-file"></div>
+            <hr><div class="d-flex justify-content-between"><a href="#" data-nav="product-list" class="btn btn-outline-secondary">Quay lại</a><button type="submit" class="btn btn-primary">Thêm sản phẩm</button></div>
+        </form></div></div>`;
+    document.getElementById('productForm').addEventListener('submit', (e) => {
+        e.preventDefault();
+        let name = document.getElementById('prodName').value.trim();
+        let desc = document.getElementById('prodDesc').value.trim();
+        let price = parseFloat(document.getElementById('prodPrice').value);
+        let catId = parseInt(document.getElementById('prodCategory').value);
+        let file = document.getElementById('prodImage').files[0];
+        if(!name || !desc || isNaN(price)) return alert("Vui lòng nhập đầy đủ thông tin!");
+        let imgSrc = "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 200 200'%3E%3Crect width='200' height='200' fill='%23ddd'/%3E%3Ctext x='50%25' y='50%25' fill='%23999'%3ENo Image%3C/text%3E%3C/svg%3E";
+        if(file) {
+            let reader = new FileReader();
+            reader.onload = function(ev) { imgSrc = ev.target.result; saveProduct(name, desc, price, catId, imgSrc); };
+            reader.readAsDataURL(file);
+        } else saveProduct(name, desc, price, catId, imgSrc);
+    });
+    function saveProduct(n,d,p,c,img){
+        let products = getProducts();
+        let newId = products.length ? Math.max(...products.map(p=>p.id)) + 1 : 5;
+        products.push({ id: newId, name: n, description: d, price: p, category_id: c, image: img });
+        saveProducts(products);
+        navigate('product-list');
+    }
+}
+
+function renderProductEdit(container, productId) {
+    let product = getProducts().find(p => p.id == productId);
+    if(!product) return;
+    let categories = getCategories();
+    let catOptions = categories.map(c => `<option value="${c.id}" ${c.id==product.category_id ? 'selected' : ''}>${escapeHtml(c.name)}</option>`).join('');
+    container.innerHTML = `
+        <div class="card shadow"><div class="card-header bg-warning"><h3>Sửa sản phẩm</h3></div><div class="card-body">
+        <form id="editProductForm"><input type="hidden" id="editId" value="${product.id}">
+        <div class="form-group"><label>Tên</label><input id="editName" class="form-control" value="${escapeHtml(product.name)}" required></div>
+        <div class="form-group"><label>Mô tả</label><textarea id="editDesc" class="form-control" rows="3">${escapeHtml(product.description)}</textarea></div>
+        <div class="row"><div class="col-md-6"><label>Giá</label><input id="editPrice" type="number" class="form-control" value="${product.price}"></div>
+        <div class="col-md-6"><label>Danh mục</label><select id="editCategory" class="form-control">${catOptions}</select></div></div>
+        <div class="form-group"><label>Ảnh mới (để trống giữ nguyên)</label><input type="file" id="editImage" accept="image/*"></div>
+        <div class="mt-2"><img src="${product.image}" width="100" class="border"></div>
+        <hr><div><a href="#" data-nav="product-list" class="btn btn-secondary">Hủy</a> <button type="submit" class="btn btn-warning">Cập nhật</button></div>
+        </form></div></div>`;
+    document.getElementById('editProductForm').addEventListener('submit', (e) => {
+        e.preventDefault();
+        let id = parseInt(document.getElementById('editId').value);
+        let name = document.getElementById('editName').value.trim();
+        let desc = document.getElementById('editDesc').value.trim();
+        let price = parseFloat(document.getElementById('editPrice').value);
+        let catId = parseInt(document.getElementById('editCategory').value);
+        let file = document.getElementById('editImage').files[0];
+        let products = getProducts();
+        let idx = products.findIndex(p=>p.id===id);
+        if(idx===-1) return;
+        let updated = { ...products[idx], name, description: desc, price, category_id: catId };
+        if(file) {
+            let reader = new FileReader();
+            reader.onload = (ev) => { updated.image = ev.target.result; products[idx] = updated; saveProducts(products); navigate('product-list'); };
+            reader.readAsDataURL(file);
+        } else { products[idx] = updated; saveProducts(products); navigate('product-list'); }
+    });
+}
+
+function renderCategoryList(container) {
+    let cats = getCategories();
+    let rows = cats.map(c => `<tr><td>${c.id}</td><td>${escapeHtml(c.name)}</td><td>${escapeHtml(c.description)}</td><td><a href="#" data-nav="category-edit" data-id="${c.id}" class="btn btn-warning btn-sm">Sửa</a> <a href="#" data-action="delete-category" data-id="${c.id}" class="btn btn-danger btn-sm">Xóa</a></td></tr>`).join('');
+    container.innerHTML = `
+        <div class="d-flex justify-content-between mb-4"><h2 class="text-primary">Danh sách danh mục</h2><a href="#" data-nav="category-add" class="btn btn-success">+ Thêm danh mục</a></div>
+        <div class="table-responsive"><table class="table table-bordered table-hover"><thead class="bg-primary text-white"><tr><th>ID</th><th>Tên danh mục</th><th>Mô tả</th><th>Thao tác</th></tr></thead><tbody>${rows||'<tr><td colspan="4">Chưa có danh mục</td></tr>'}</tbody></table></div>`;
+    attachGlobalEvents();
+}
+
+function renderCategoryAdd(container) {
+    container.innerHTML = `<div class="card"><div class="card-header bg-success text-white">Thêm danh mục</div><div class="card-body"><form id="catForm"><div class="form-group"><label>Tên danh mục</label><input id="catName" class="form-control" required></div><div class="form-group"><label>Mô tả</label><textarea id="catDesc" class="form-control"></textarea></div><hr><div><a href="#" data-nav="category-list" class="btn btn-secondary">Quay lại</a> <button type="submit" class="btn btn-success">Lưu</button></div></form></div></div>`;
+    document.getElementById('catForm').addEventListener('submit',(e)=>{
+        e.preventDefault();
+        let cats = getCategories();
+        let newId = cats.length ? Math.max(...cats.map(c=>c.id))+1 : 5;
+        cats.push({id:newId, name:document.getElementById('catName').value.trim(), description:document.getElementById('catDesc').value.trim()});
+        saveCategories(cats);
+        navigate('category-list');
+    });
+}
+
+function renderCategoryEdit(container, catId) {
+    let cat = getCategories().find(c=>c.id==catId);
+    if(!cat) return;
+    container.innerHTML = `<div class="card"><div class="card-header bg-info">Sửa danh mục</div><div class="card-body"><form id="editCatForm"><input type="hidden" id="catEditId" value="${cat.id}"><div class="form-group"><label>Tên</label><input id="catEditName" class="form-control" value="${escapeHtml(cat.name)}" required></div><div class="form-group"><label>Mô tả</label><textarea id="catEditDesc" class="form-control">${escapeHtml(cat.description)}</textarea></div><hr><a href="#" data-nav="category-list" class="btn btn-secondary">Hủy</a> <button type="submit" class="btn btn-primary">Cập nhật</button></form></div></div>`;
+    document.getElementById('editCatForm').addEventListener('submit',(e)=>{
+        e.preventDefault();
+        let cats = getCategories();
+        let idx = cats.findIndex(c=>c.id==catId);
+        if(idx!==-1){ cats[idx].name = document.getElementById('catEditName').value.trim(); cats[idx].description = document.getElementById('catEditDesc').value.trim(); saveCategories(cats); navigate('category-list'); }
+    });
+}
+
+function renderCart(container) {
+    let cart = getCart();
+    if(cart.length===0){
+        container.innerHTML=`<div class="alert alert-warning text-center p-4"><h4>Giỏ hàng trống!</h4><a href="#" data-nav="product-list" class="btn btn-primary">Mua sắm ngay</a></div>`;
+        attachGlobalEvents(); return;
+    }
+    let total = cart.reduce((sum,i)=>sum + i.price*i.quantity,0);
+    let rows = cart.map(item => {
+        let img = item.image || 'https://placehold.co/80';
+        return `<tr><td><img src="${img}" width="60" class="border"></td><td>${escapeHtml(item.name)}</td><td>${formatCurrency(item.price)}</td><td><div class="d-flex"><a href="#" data-action="decr-cart" data-id="${item.product_id}" class="btn btn-sm btn-outline-secondary">-</a><span class="mx-2">${item.quantity}</span><a href="#" data-action="incr-cart" data-id="${item.product_id}" class="btn btn-sm btn-outline-secondary">+</a></div></td><td>${formatCurrency(item.price*item.quantity)}</td><td><a href="#" data-action="remove-cart" data-id="${item.product_id}" class="btn btn-danger btn-sm">Xóa</a></td></tr>`;
+    }).join('');
+    container.innerHTML = `<h2 class="mb-4">Giỏ hàng</h2><div class="table-responsive"><table class="table table-bordered"><thead class="thead-dark"><tr><th>Ảnh</th><th>Sản phẩm</th><th>Đơn giá</th><th>Số lượng</th><th>Thành tiền</th><th>Xóa</th></tr></thead><tbody>${rows}</tbody></table></div><div class="d-flex justify-content-between align-items-center mt-3 p-3 bg-light"><h4>Tổng: <span class="text-danger">${formatCurrency(total)} VNĐ</span></h4><div><a href="#" data-nav="product-list" class="btn btn-secondary">Tiếp tục mua</a> <a href="#" data-nav="checkout" class="btn btn-success">Thanh toán</a></div></div>`;
+    attachGlobalEvents();
+}
+
+function renderCheckout(container){
+    let cart = getCart();
+    if(cart.length===0) { navigate('cart'); return; }
+    container.innerHTML = `<div class="row"><div class="col-md-7"><div class="card"><div class="card-header bg-primary text-white">Thông tin giao hàng</div><div class="card-body"><form id="checkoutForm"><div class="form-group"><label>Họ tên</label><input id="chkName" class="form-control" required></div><div class="form-group"><label>Số điện thoại</label><input id="chkPhone" class="form-control" required></div><div class="form-group"><label>Địa chỉ</label><textarea id="chkAddress" class="form-control" rows="2" required></textarea></div><button type="submit" class="btn btn-success btn-block">Xác nhận đặt hàng</button><a href="#" data-nav="cart" class="btn btn-outline-secondary btn-block mt-2">Quay lại giỏ</a></form></div></div></div><div class="col-md-5"><div class="card"><div class="card-header bg-dark text-white">Tóm tắt đơn hàng</div><ul class="list-group list-group-flush">${cart.map(i=>`<li class="list-group-item d-flex justify-content-between"><span>${escapeHtml(i.name)} x ${i.quantity}</span><span>${formatCurrency(i.price*i.quantity)}</span></li>`).join('')}<li class="list-group-item bg-light font-weight-bold d-flex justify-content-between"><span>Tổng cộng</span><span class="text-danger">${formatCurrency(cart.reduce((s,i)=>s+i.price*i.quantity,0))}</span></li></ul></div></div></div>`;
+    document.getElementById('checkoutForm').addEventListener('submit',(e)=>{
+        e.preventDefault();
+        let name = document.getElementById('chkName').value.trim();
+        let phone = document.getElementById('chkPhone').value.trim();
+        let address = document.getElementById('chkAddress').value.trim();
+        if(!name||!phone||!address) return alert("Vui lòng nhập đầy đủ");
+        pendingData = { name, phone, address, cart: getCart() };
+        navigate('confirm-checkout');
+    });
+}
+
+function renderConfirmCheckout(container, data){
+    if(!data) { navigate('checkout'); return; }
+    let total = data.cart.reduce((s,i)=>s+i.price*i.quantity,0);
+    container.innerHTML = `<div class="card"><div class="card-header bg-info text-white">Kiểm tra thông tin</div><div class="card-body"><p><strong>Họ tên:</strong> ${escapeHtml(data.name)}</p><p><strong>Điện thoại:</strong> ${escapeHtml(data.phone)}</p><p><strong>Địa chỉ:</strong> ${escapeHtml(data.address)}</p><hr><h5>Chi tiết đơn hàng</h5><ul>${data.cart.map(i=>`<li>${escapeHtml(i.name)} x ${i.quantity} = ${formatCurrency(i.price*i.quantity)}</li>`).join('')}</ul><h4 class="text-danger">Tổng: ${formatCurrency(total)} VNĐ</h4><div class="d-flex justify-content-between mt-4"><a href="#" data-nav="checkout" class="btn btn-secondary">Sửa thông tin</a><button id="finalOrderBtn" class="btn btn-success">CHỐT ĐƠN HÀNG</button></div></div></div>`;
+    document.getElementById('finalOrderBtn').addEventListener('click',()=>{
+        let orders = getOrders();
+        let newId = orders.length ? Math.max(...orders.map(o=>o.id)) + 1 : 1;
+        let newOrder = { id: newId, name: data.name, phone: data.phone, address: data.address, created_at: new Date().toISOString(), items: data.cart, total: data.cart.reduce((s,i)=>s+i.price*i.quantity,0) };
+        orders.push(newOrder);
+        saveOrders(orders);
+        localStorage.setItem('cart', JSON.stringify([]));
+        updateCartBadge();
+        navigate('order-confirmation');
+    });
+}
+
+function renderOrderConfirmation(container){
+    container.innerHTML = `<div class="text-center p-5"><i class="fas fa-check-circle text-success fa-5x mb-4"></i><h1 class="text-success">ĐẶT HÀNG THÀNH CÔNG!</h1><p>Cảm ơn bạn đã mua sắm. Đơn hàng đang được xử lý.</p><a href="#" data-nav="product-list" class="btn btn-primary mt-3">Tiếp tục mua sắm</a></div>`;
+    attachGlobalEvents();
+}
+
+function renderOrderHistory(container){
+    let orders = getOrders();
+    if(orders.length===0){ container.innerHTML=`<div class="alert alert-info">Chưa có đơn hàng nào.</div><a href="#" data-nav="product-list" class="btn btn-primary">Mua sắm ngay</a>`; attachGlobalEvents(); return; }
+    let rows = orders.map(o=>`<tr><td>#${o.id}</td><td>${escapeHtml(o.name)}</td><td>${escapeHtml(o.phone)}</td><td>${escapeHtml(o.address)}</td><td>${new Date(o.created_at).toLocaleString()}</td><td class="text-danger font-weight-bold">${formatCurrency(o.total)}</td></tr>`).join('');
+    container.innerHTML = `<h2>Lịch sử đơn hàng</h2><div class="table-responsive"><table class="table table-bordered table-striped"><thead class="bg-dark text-white"><tr><th>Mã ĐH</th><th>Khách hàng</th><th>Điện thoại</th><th>Địa chỉ</th><th>Ngày đặt</th><th>Tổng tiền</th></tr></thead><tbody>${rows}</tbody></table></div><a href="#" data-nav="product-list" class="btn btn-secondary">Tiếp tục mua sắm</a>`;
+    attachGlobalEvents();
+}
+
+function formatCurrency(val){ return val.toLocaleString('vi-VN') + ' ₫'; }
+function escapeHtml(str){ if(!str) return ''; return str.replace(/[&<>]/g, function(m){if(m==='&') return '&amp;'; if(m==='<') return '&lt;'; if(m==='>') return '&gt;'; return m;}); }
+
+function attachGlobalEvents(){
+    document.querySelectorAll('[data-nav]').forEach(el => el.addEventListener('click', (e) => { e.preventDefault(); let nav = el.getAttribute('data-nav'); let id = el.getAttribute('data-id'); if(nav==='product-detail') navigate('product-detail', parseInt(id)); else if(nav==='product-edit') navigate('product-edit', parseInt(id)); else if(nav==='category-edit') navigate('category-edit', parseInt(id)); else navigate(nav); }));
+    document.querySelectorAll('[data-action="add-to-cart"]').forEach(btn => btn.addEventListener('click', (e) => { e.preventDefault(); let pid = parseInt(btn.getAttribute('data-id')); addToCart(pid); }));
+    document.querySelectorAll('[data-action="delete-product"]').forEach(btn => btn.addEventListener('click', (e) => { e.preventDefault(); let pid = parseInt(btn.getAttribute('data-id')); if(confirm('Xóa sản phẩm?')){ let prods = getProducts().filter(p=>p.id!==pid); saveProducts(prods); if(currentPage==='product-list') render(); else navigate('product-list'); } }));
+    document.querySelectorAll('[data-action="delete-category"]').forEach(btn => btn.addEventListener('click', (e) => { e.preventDefault(); let cid = parseInt(btn.getAttribute('data-id')); if(confirm('Xóa danh mục?')){ let cats = getCategories().filter(c=>c.id!==cid); saveCategories(cats); navigate('category-list'); } }));
+    document.querySelectorAll('[data-action="incr-cart"]').forEach(btn => btn.addEventListener('click', (e) => { e.preventDefault(); let pid = parseInt(btn.getAttribute('data-id')); modifyCartQuantity(pid, 1); navigate('cart'); }));
+    document.querySelectorAll('[data-action="decr-cart"]').forEach(btn => btn.addEventListener('click', (e) => { e.preventDefault(); let pid = parseInt(btn.getAttribute('data-id')); modifyCartQuantity(pid, -1); navigate('cart'); }));
+    document.querySelectorAll('[data-action="remove-cart"]').forEach(btn => btn.addEventListener('click', (e) => { e.preventDefault(); let pid = parseInt(btn.getAttribute('data-id')); let cart = getCart().filter(i=>i.product_id!==pid); saveCart(cart); navigate('cart'); }));
+}
+
+function addToCart(productId){
+    let prod = getProducts().find(p=>p.id==productId);
+    if(!prod) return;
+    let cart = getCart();
+    let exist = cart.find(i=>i.product_id===productId);
+    if(exist) exist.quantity++;
+    else cart.push({ product_id: prod.id, name: prod.name, price: prod.price, quantity: 1, image: prod.image });
+    saveCart(cart);
+    alert('Đã thêm vào giỏ hàng!');
+    if(currentPage==='cart') render(); else navigate('cart');
+}
+
+function modifyCartQuantity(pid, delta){
+    let cart = getCart();
+    let idx = cart.findIndex(i=>i.product_id===pid);
+    if(idx!==-1){
+        cart[idx].quantity += delta;
+        if(cart[idx].quantity <= 0) cart.splice(idx,1);
+        saveCart(cart);
+    }
+}
+
+function navigate(page, param=null){
+    if(page==='product-detail') currentPage='product-detail', pendingData=param;
+    else if(page==='product-edit') currentPage='product-edit', pendingData=param;
+    else if(page==='category-edit') currentPage='category-edit', pendingData=param;
+    else if(page==='confirm-checkout') currentPage='confirm-checkout';
+    else if(page==='order-confirmation') currentPage='order-confirmation';
+    else { currentPage=page; pendingData=null; }
+    render();
+}
+
+initStorage();
+updateCartBadge();
+navigate('product-list');
